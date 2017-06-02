@@ -21,7 +21,7 @@ class ProjectMetricPullRequests
                  data: { total: @raw_data.length,
                          open: @raw_data.select { |pr| pr[:state].eql? 'open' }.length,
                          closed: @raw_data.select { |pr| pr[:state].eql? 'closed' }.length,
-                         commented: @raw_data.reject { |pr| pr_comments(pr).empty? }.length } }
+                         commented: @raw_data.reject { |pr| pr_comments(pr).empty? }.length } }.to_json
   end
 
   def score
@@ -30,8 +30,8 @@ class ProjectMetricPullRequests
   end
 
   def refresh
-    @raw_data ||= pull_requests
     @image = @score = nil
+    @raw_data ||= pull_requests
   end
 
   def self.credentials
