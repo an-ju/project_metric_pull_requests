@@ -26,7 +26,7 @@ class ProjectMetricPullRequests
 
   def score
     @raw_data ||= pull_requests
-    @score ||= @raw_data.reject { |pr| pr_comments(pr).empty? }.length / @raw_data.length
+    @score ||= @raw_data.length > 0 ? @raw_data.reject { |pr| pr_comments(pr).empty? }.length / @raw_data.length : 0.0
   end
 
   def refresh
