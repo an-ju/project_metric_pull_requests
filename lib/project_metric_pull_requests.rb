@@ -1,10 +1,10 @@
 require "project_metric_pull_requests/version"
+require 'project_metric_pull_requests/test_generator'
 require 'octokit'
 require 'json'
 require 'open-uri'
 
 class ProjectMetricPullRequests
-  attr_accessor :raw_data
 
   def initialize(credentials = {}, raw_data = nil)
     @url = credentials[:github_project]
@@ -13,27 +13,33 @@ class ProjectMetricPullRequests
     @client = Octokit::Client.new access_token: credentials[:github_access_token]
     @client.auto_paginate = true
 
-    @raw_data = raw_data
+    unless raw_data.nil?
+      @raw_data = raw_data
+      @events = JSON.parse(raw_data, symbolize_names: true)[:events]
+    end
   end
 
   def image
-    @raw_data ||= pull_requests
-    @image ||= { chartType: 'pull_requests',
-                 titleText: 'Pull Request Status',
-                 data: { total: @raw_data.length,
-                         open: @raw_data.select { |pr| pr['state'].eql? 'open' }.length,
-                         closed: @raw_data.select { |pr| pr['state'].eql? 'closed' }.length,
-                         commented: @raw_data.select { |pr| num_comments(pr) > 0 }.length } }.to_json
+    refresh unless @raw_data
+    { chartType: 'pull_requests',
+      data: { new_pr: new_pull_requests,
+              closed_pr: closed_pull_requests,
+              pr_link: "https://github.com/#{@identifier}/pulls" } }.to_json
   end
 
   def score
-    @raw_data ||= pull_requests
-    @score ||= @raw_data.length > 0 ? @raw_data.select { |pr| num_comments(pr) > 0 }.length.to_f / @raw_data.length.to_f : 0.0
+    refresh unless @raw_data
+    pull_requests.length
   end
 
   def refresh
-    @image = @score = nil
-    @raw_data ||= pull_requests
+    set_events
+    @raw_data = { events: @events.map(&:to_h) }.to_json
+  end
+
+  def raw_data=(new_data)
+    @raw_data = new_data
+    @events = JSON.parse(new_data, symbolize_names: true)[:events]
   end
 
   def self.credentials
@@ -42,13 +48,21 @@ class ProjectMetricPullRequests
 
   private
 
-  def pull_requests
-    @client.pull_requests( @identifier, state: 'all').map do |pr|
-      JSON.load(open(pr[:url], 'Authorization' => "token #{@token}"))
-    end
+  def set_events
+    # Events in the past three days
+    @events = @client.repository_events(@identifier)
+                  .select { |event| event[:created_at] > (Time.now - 3*24*60*60) }
   end
 
-  def num_comments(pr)
-    pr['comments'] + pr['review_comments']
+  def pull_requests
+    @events.select { |event| event[:type].eql? 'PullRequestEvent'}
+  end
+
+  def new_pull_requests
+    pull_requests.select { |event| event[:payload][:action].eql? 'opened' }
+  end
+
+  def closed_pull_requests
+    pull_requests.select { |event| event[:payload][:action].eql? 'closed' }
   end
 end
