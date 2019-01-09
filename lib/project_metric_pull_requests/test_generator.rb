@@ -7,7 +7,7 @@ class ProjectMetricPullRequests
     image = { charType: 'pull_requests',
               data: { new_pr: Array.new(num_open) { open_pr },
                       closed_pr: Array.new(num_close) { closed_pr },
-                      pr_link: 'https://github.com/an-ju/projectscope/pulls' } }.to_json
+                      pr_link: 'https://github.com/an-ju/projectscope/pulls' } }
     { score: num_open + num_close + rand(10), image: image }
   end
 
