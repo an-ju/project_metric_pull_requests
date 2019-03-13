@@ -30,8 +30,8 @@ RSpec.describe ProjectMetricPullRequests do
 
     it 'should set image contents correctly' do
       image = metric.image
-      expect(image[:data][:new_pr]).not_to be_nil
-      expect(image[:data][:closed_pr]).not_to be_nil
+      expect(image[:data][:new_pr]).not_to be_empty
+      expect(image[:data][:closed_pr]).not_to be_empty
     end
   end
 

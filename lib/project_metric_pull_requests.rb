@@ -37,17 +37,18 @@ class ProjectMetricPullRequests
     # Events in the past three days
     @github_events = @client.repository_events(@identifier)
                          .select { |event| event[:created_at] > (Time.now - 3*24*60*60) }
+                         .map(&:to_h)
   end
 
   def pull_requests
-    @github_events.select { |event| event[:type].eql? 'PullRequestEvent'}
+    @github_events.select { |event| event['type'].eql? 'PullRequestEvent'}
   end
 
   def new_pull_requests
-    pull_requests.select { |event| event[:payload][:action].eql? 'opened' }
+    pull_requests.select { |event| event['payload']['action'].eql? 'opened' }
   end
 
   def closed_pull_requests
-    pull_requests.select { |event| event[:payload][:action].eql? 'closed' }
+    pull_requests.select { |event| event['payload']['action'].eql? 'closed' }
   end
 end
